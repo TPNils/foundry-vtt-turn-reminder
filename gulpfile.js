@@ -11,6 +11,7 @@ const FOUNDRY_PATH = "../../instances/dev"
 const gulp = require('gulp');
 const del = require('del');
 const ts = require('gulp-typescript');
+const sourcemaps = require('gulp-sourcemaps');
 const fs = require('fs');
 const project = ts.createProject('tsconfig.json')
 const memory = {};
@@ -59,12 +60,17 @@ function compile(compileGlobs) {
       if (typeof compileGlob === 'function') {
         compileGlob = compileGlob();
       }
-      gulp.src(compileGlob.from).pipe(project()).pipe(gulp.dest(compileGlob.into)).on('end', () => {
-        completedTasks++;
-        if (completedTasks >= compileGlobs.length) {
-          callback();
-        }
-      });
+      gulp.src(compileGlob.from)
+        .pipe(sourcemaps.init())
+        .pipe(project())
+        .pipe(sourcemaps.write())
+        .pipe(gulp.dest(compileGlob.into))
+        .on('end', () => {
+          completedTasks++;
+          if (completedTasks >= compileGlobs.length) {
+            callback();
+          }
+        });
     }
   }
 }

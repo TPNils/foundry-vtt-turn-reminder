@@ -10,7 +10,7 @@
 
   "scripts": [],
   "esmodules": [
-    "./main.js"
+    "scripts/main.js"
   ],
 	"socket": false,
 	"styles": [],
