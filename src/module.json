@@ -1,0 +1,25 @@
+{
+  "name": "turn-reminder",
+  "title": "Turn reminder",
+  "description": "Add a reminder at the start of a players turn",
+  "author": "TPNils",
+  "version": "1.0.0",
+  "minimumCoreVersion": "0.7.7",
+	"compatibleCoreVersion": "0.7.9",
+  "systems": ["dnd5e"],
+
+  "scripts": [],
+  "esmodules": [
+    "./main.js"
+  ],
+	"socket": false,
+	"styles": [],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "packs": []
+}

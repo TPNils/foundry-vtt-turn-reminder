@@ -1,0 +1,11 @@
+<div>
+  <h3>{{localize "turn-reminder.reminder"}}</h3>
+</div>
+
+<div>
+    <ul>
+        {{#each reminders as |reminder key|}}
+        <div class="dice-formula">{{reminder}}</div>
+        {{/each}}
+    </ul>
+</div>
