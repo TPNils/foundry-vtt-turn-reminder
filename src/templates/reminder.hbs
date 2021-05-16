@@ -5,7 +5,9 @@
 <div>
     <ul>
         {{#each reminders as |reminder key|}}
-        <div class="dice-formula">{{reminder}}</div>
+        <div class="dice-formula">
+          <label><input type="checkbox"/> {{reminder}}</label>
+        </div>
         {{/each}}
     </ul>
 </div>
