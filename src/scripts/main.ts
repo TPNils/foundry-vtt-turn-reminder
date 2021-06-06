@@ -1,16 +1,10 @@
 import { staticValues } from "./static-values.js";
 
-interface CombatData {
-  current: {round: number, turn: number, tokenId: string},
-  data: any,
-  options: any,
-  previous: {round: number, turn: number, tokenId: string},
-  turns: {
-    actor: any,
-    players: any[],
-    token: any,
-    tokenId: string
-  }
+interface Turn {
+  actor: any,
+  players: any[],
+  token: any,
+  tokenId: string
 }
 
 let openDialogs: Dialog[] = [];
@@ -61,18 +55,24 @@ function setPopupContent(): void {
   });
 }
 
-Hooks.on("ready", (combat: CombatData, update: Combat, options: any) => {
-  if (game.combat) {
-    setPopupContent();
+function shouldShowReminder(combat: Combat): boolean {
+  const turn: Turn = combat.turns[combat.turn];
+  if (game.user.isGM) {
+    return false;
+  } else {
+    for (const player of turn.players) {
+      if (player.id === game.userId) {
+        return true;
+      }
+    }
   }
 
-  return true;
-});
+  return false;
+}
 
-Hooks.on("updateCombat", (combat: CombatData, update: Combat, options: any) => {
-  if (update.round !== undefined || update.turn !== undefined) {
-    const turn = combat.turns[combat.current.turn];
-    if (turn.players.length > 0) {
+Hooks.on("ready", () => {
+  if (game.combat) {
+    if (shouldShowReminder(game.combat)) {
       setPopupContent();
     }
   }
@@ -80,7 +80,21 @@ Hooks.on("updateCombat", (combat: CombatData, update: Combat, options: any) => {
   return true;
 });
 
-Hooks.on("deleteCombat", (combat: CombatData, update: Combat, options: any) => {
+Hooks.on("updateCombat", (combat: Combat, update: Combat, options: any) => {
+  if (update.round !== undefined || update.turn !== undefined) {
+    if (shouldShowReminder(combat)) {
+      setPopupContent();
+    } else {
+      for (const dialog of openDialogs) {
+        dialog.minimize();
+      }
+    }
+  }
+
+  return true;
+});
+
+Hooks.on("deleteCombat", (combat: Combat, update: Combat, options: any) => {
   for (const dialog of openDialogs) {
     dialog.close();
   }
