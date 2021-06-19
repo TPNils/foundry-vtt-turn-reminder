@@ -93,7 +93,7 @@ function setPopupContent(actorId: string): void {
           const content = html[0];
           for (const reminder of templateData.reminders) {
             for (const action of reminder.actions) {
-              content.querySelector(`:scope #${action.id}`).addEventListener('click', () => action.onClick());
+              content.querySelector(`:scope #${action.id} .reminder-action-image`).addEventListener('click', () => action.onClick());
             }
           }
         },
