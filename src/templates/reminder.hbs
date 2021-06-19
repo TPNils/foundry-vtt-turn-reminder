@@ -11,8 +11,15 @@
 
         {{#each reminder.actions as |action actionKey|}}
           <div class="reminder-action" id="{{action.id}}">
-            <div class="reminder-action-image" style="background-image: url('{{action.image}}')"></div>
-            {{action.name}}
+            <div class="reminder-action-summary">
+              <div class="reminder-action-image" style="background-image: url('{{action.image}}')"></div>
+              <div class="reminder-action-name">{{action.name}}</div>
+            </div>
+            {{#if action.description}}
+              <div class="reminder-action-description">
+                {{{action.description}}}
+              </div>
+            {{/if}}
           </div>
         {{/each}}
 

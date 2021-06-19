@@ -20,9 +20,12 @@ interface TemplateReminderActionData {
   id: string;
   image: string;
   name: string;
-  description: string;
-  onClick: () => void;
+  description?: string;
+  onImageClick?: TemplateReminderActionCallback;
+  onNameClick?: TemplateReminderActionCallback;
 }
+
+type TemplateReminderActionCallback = (param: {event: MouseEvent, actionHtml: HTMLElement}) => void;
 
 let openDialogs: Dialog[] = [];
 const reminderContentClass = `${staticValues.moduleName}-reminder-content`;
@@ -67,8 +70,14 @@ function setPopupContent(actorId: string): void {
       id: `reminder-action-${actionId++}`,
       image: item.img,
       name: item.name,
-      description: data5e?.description?.value,
-      onClick: () => (item as any).roll()
+      onImageClick: () => (item as any).roll(),
+      onNameClick: ({actionHtml}) => {
+        actionHtml.classList.toggle('open');
+      }
+    }
+
+    if (data5e?.description?.value) {
+      action.description = TextEditor.enrichHTML(data5e?.description?.value);
     }
     if (data5e?.activation?.type === 'action') {
       mainActions.actions.push(action);
@@ -93,7 +102,22 @@ function setPopupContent(actorId: string): void {
           const content = html[0];
           for (const reminder of templateData.reminders) {
             for (const action of reminder.actions) {
-              content.querySelector(`:scope #${action.id} .reminder-action-image`).addEventListener('click', () => action.onClick());
+              if (action.onImageClick != null) {
+                content.querySelector(`:scope #${action.id} .reminder-action-image`).addEventListener('click', (event: MouseEvent) => {
+                  action.onImageClick({
+                    event: event,
+                    actionHtml: content.querySelector(`:scope #${action.id}`)
+                  })
+                });
+              }
+              if (action.onNameClick != null) {
+                content.querySelector(`:scope #${action.id} .reminder-action-name`).addEventListener('click', (event: MouseEvent) => {
+                  action.onNameClick({
+                    event: event,
+                    actionHtml: content.querySelector(`:scope #${action.id}`)
+                  })
+                });
+              }
             }
           }
         },

@@ -21,16 +21,30 @@
   line-height: 32px;
 }
 
-.reminder-action {
+.reminder-action-summary {
   display: flex;
-  height: 30px;
-  line-height: 30px;
+  width: 100%;
+}
+
+.reminder-action .reminder-action-description {
+  display: none;
+}
+
+.reminder-action.open .reminder-action-description {
+  display: block;
 }
 
 .reminder-action-image {
   width: 30px;
   height: 30px; 
   background-size: 30px;
+  display: inline-block;
+}
+
+.reminder-action-name {
+  height: 30px;
+  line-height: 30px;
+  display: inline-block;
 }
 
 .reminder-action-image:hover {
