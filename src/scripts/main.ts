@@ -34,8 +34,74 @@ type TemplateReminderActionCallback = (param: {event: MouseEvent, actionHtml: HT
 
 let openDialogs: RenderedDialog[] = [];
 const reminderContentClass = `${staticValues.moduleName}-reminder-content`;
-function setPopupContent(actorId: string): void {
+async function setPopupContent(actorId: string): Promise<void> {
+  const templateData = getTemplateData(actorId);
+  const content: string = await renderTemplate(`modules/${staticValues.moduleName}/templates/reminder.hbs`, templateData) as any;
+
+  const popups = document.querySelectorAll(`.${reminderContentClass} .dialog-content`);
+  if (popups.length === 0) {
+    const dialog = new Dialog({
+      title: 'Turn reminder',
+      content: content,
+      buttons: {},
+      render: (html) => {
+        addEventListeners(html[0], templateData);
+      },
+      close: () => {
+        const remainingDialogs: RenderedDialog[] = [];
+        for (const openDialog of openDialogs) {
+          if (dialog !== openDialog.dialog) {
+            remainingDialogs.push(openDialog);
+          }
+        }
+        openDialogs = remainingDialogs;
+      }
+    } as DialogData & {render: (html: JQuery) => void}, {
+      classes: [reminderContentClass]
+    });
+    dialog.render(true);
+    openDialogs.push({dialog: dialog, templateData: templateData});
+  } else {
+    for (const dialog of openDialogs) {
+      if (dialog.dialog.element instanceof HTMLElement) {
+        const dialogContent: HTMLElement = dialog.dialog.element.querySelector('.dialog-content');
+        dialogContent.querySelector('.dialog-content').innerHTML = content;
+        addEventListeners(dialogContent, templateData);
+      } else {
+        dialog.dialog.element.find('.dialog-content').html(content);
+        addEventListeners(dialog.dialog.element.find('.dialog-content')[0], templateData);
+      }
+      dialog.dialog.maximize();
+    }
+  }
+}
+
+function addEventListeners(content: HTMLElement, templateData: TemplateData): void {
+  for (const reminder of templateData.reminders) {
+    for (const action of reminder.actions) {
+      if (action.onImageClick != null) {
+        content.querySelector(`:scope #${action.id} .reminder-action-image`).addEventListener('click', (event: MouseEvent) => {
+          action.onImageClick({
+            event: event,
+            actionHtml: content.querySelector(`:scope #${action.id}`)
+          })
+        });
+      }
+      if (action.onNameClick != null) {
+        content.querySelector(`:scope #${action.id} .reminder-action-name`).addEventListener('click', (event: MouseEvent) => {
+          action.onNameClick({
+            event: event,
+            actionHtml: content.querySelector(`:scope #${action.id}`)
+          })
+        });
+      }
+    }
+  }
+}
+
+function getTemplateData(actorId: string): TemplateData {
   const actor = game.actors.get(actorId);
+  const actorData5e: any = actor.data.data;
   const templateData: TemplateData = {
     reminders: []
   };
@@ -57,8 +123,22 @@ function setPopupContent(actorId: string): void {
     label: 'Bonus action',
     actions: []
   };
-  templateData.reminders.push(mainActions);
-  templateData.reminders.push(bonusActions);
+  const reactionActions: TemplateReminderData = {
+    label: 'Reaction',
+    actions: []
+  };
+  const specialActions: TemplateReminderData = {
+    label: 'Special',
+    actions: []
+  };
+  const legendaryActions: TemplateReminderData = {
+    label: `Legendary ${actorData5e?.resources?.legact?.value} / ${actorData5e?.resources?.legact?.max}`,
+    actions: []
+  };
+  const lairActions: TemplateReminderData = {
+    label: 'Lair',
+    actions: []
+  };
   
   let actionId = 0;
   for (const item of actor.items.values()) {
@@ -84,79 +164,47 @@ function setPopupContent(actorId: string): void {
     if (data5e?.description?.value) {
       action.description = TextEditor.enrichHTML(data5e?.description?.value, {secrets: true, rollData: false});
     }
-    if (data5e?.activation?.type === 'action') {
-      mainActions.actions.push(action);
+    switch (data5e?.activation?.type) {
+      case 'action':
+        mainActions.actions.push(action);
+        break;
+      case 'bonus':
+        bonusActions.actions.push(action);
+        break;
+      case 'reaction':
+        reactionActions.actions.push(action);
+        break;
+      case 'none':
+      case 'special':
+        specialActions.actions.push(action);
+        break;
+      case 'lair':
+        lairActions.actions.push(action);
+        break;
+      case 'legendary':
+        legendaryActions.actions.push(action);
+        break;
     }
-    if (data5e?.activation?.type === 'bonus') {
-      bonusActions.actions.push(action);
-    }
+  }
+  templateData.reminders.push(mainActions);
+  templateData.reminders.push(bonusActions);
+  if (specialActions.actions.length > 0) {
+    templateData.reminders.push(specialActions);
+  }
+  if (reactionActions.actions.length > 0) {
+    templateData.reminders.push(reactionActions);
+  }
+  if (legendaryActions.actions.length > 0 && actorData5e?.resources?.legact?.max > 0) {
+    templateData.reminders.push(legendaryActions);
+  }
+  if (lairActions.actions.length > 0 && actorData5e?.resources?.lair?.value === true) {
+    templateData.reminders.push(lairActions);
   }
 
   for (const reminder of templateData.reminders) {
     reminder.actions = reminder.actions.sort((a: TemplateReminderActionData, b: TemplateReminderActionData) => a.name.localeCompare(b.name));
   }
-
-  renderTemplate(`modules/${staticValues.moduleName}/templates/reminder.hbs`, templateData).then((content: any/* string */) => {
-    const popups = document.querySelectorAll(`.${reminderContentClass} .dialog-content`);
-    if (popups.length === 0) {
-      const dialog = new Dialog({
-        title: 'Turn reminder',
-        content: content,
-        buttons: {},
-        render: (html) => {
-          addEventListeners(html[0], templateData);
-        },
-        close: () => {
-          const remainingDialogs: RenderedDialog[] = [];
-          for (const openDialog of openDialogs) {
-            if (dialog !== openDialog.dialog) {
-              remainingDialogs.push(openDialog);
-            }
-          }
-          openDialogs = remainingDialogs;
-        }
-      } as DialogData & {render: (html: JQuery) => void}, {
-        classes: [reminderContentClass]
-      });
-      dialog.render(true);
-      openDialogs.push({dialog: dialog, templateData: templateData});
-    } else {
-      for (const dialog of openDialogs) {
-        if (dialog.dialog.element instanceof HTMLElement) {
-          const dialogContent: HTMLElement = dialog.dialog.element.querySelector('.dialog-content');
-          dialogContent.querySelector('.dialog-content').innerHTML = content;
-          addEventListeners(dialogContent, dialog.templateData);
-        } else {
-          dialog.dialog.element.find('.dialog-content').html(content);
-          addEventListeners(dialog.dialog.element.find('.dialog-content')[0], dialog.templateData);
-        }
-        dialog.dialog.maximize();
-      }
-    }
-  });
-}
-
-function addEventListeners(content: HTMLElement, templateData: TemplateData): void {
-  for (const reminder of templateData.reminders) {
-    for (const action of reminder.actions) {
-      if (action.onImageClick != null) {
-        content.querySelector(`:scope #${action.id} .reminder-action-image`).addEventListener('click', (event: MouseEvent) => {
-          action.onImageClick({
-            event: event,
-            actionHtml: content.querySelector(`:scope #${action.id}`)
-          })
-        });
-      }
-      if (action.onNameClick != null) {
-        content.querySelector(`:scope #${action.id} .reminder-action-name`).addEventListener('click', (event: MouseEvent) => {
-          action.onNameClick({
-            event: event,
-            actionHtml: content.querySelector(`:scope #${action.id}`)
-          })
-        });
-      }
-    }
-  }
+  return templateData;
 }
 
 function shouldShowReminder(combat: Combat): boolean {
