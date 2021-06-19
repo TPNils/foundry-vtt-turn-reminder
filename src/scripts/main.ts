@@ -1,7 +1,7 @@
 import { staticValues } from "./static-values.js";
 
 interface Turn {
-  actor: any,
+  actor: Actor,
   players: any[],
   token: any,
   tokenId: string
@@ -27,14 +27,19 @@ interface TemplateReminderActionData {
 let openDialogs: Dialog[] = [];
 const reminderContentClass = `${staticValues.moduleName}-reminder-content`;
 function setPopupContent(actorId: string): void {
+  const actor = game.actors.get(actorId);
   const templateData: TemplateData = {
-    reminders: [
+    reminders: []
+  };
+
+  if (actor.data.type === 'character') {
+    templateData.reminders = [
       {label: 'Knowledge check', actions: []},
       {label: 'Movement', actions: []},
       {label: 'Communicate', actions: []},
       {label: 'Object interaction', actions: []},
     ]
-  };
+  }
 
   const mainActions: TemplateReminderData = {
     label: 'Action',
@@ -48,7 +53,7 @@ function setPopupContent(actorId: string): void {
   templateData.reminders.push(bonusActions);
   
   let actionId = 0;
-  for (const item of game.actors.get(actorId).items.values()) {
+  for (const item of actor.items.values()) {
     const data5e: any = item.data.data;
     if (item.data.type === 'spell') {
       if (data5e?.preparation?.mode === 'prepared' && data5e?.preparation?.prepared !== true) {
@@ -122,12 +127,13 @@ function setPopupContent(actorId: string): void {
 function shouldShowReminder(combat: Combat): boolean {
   const turn: Turn = combat.turns[combat.turn];
   if (game.user.isGM) {
-    return false;
-  } else {
-    for (const player of turn.players) {
-      if (player.id === game.userId) {
-        return true;
-      }
+    if (turn.actor.data.type === 'npc') {
+      return true;
+    }
+  }
+  for (const player of turn.players) {
+    if (player.id === game.userId) {
+      return true;
     }
   }
 
