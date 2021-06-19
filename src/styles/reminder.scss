@@ -1,3 +1,11 @@
+.turn-reminder-reminder-content {
+  min-width: 400px;
+  width: max-content !important;
+  max-width: 50%;
+  height: max-content !important;
+  max-height: 75%;
+}
+
 .reminder label {
   cursor: pointer;
 }
