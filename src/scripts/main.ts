@@ -34,8 +34,8 @@ type TemplateReminderActionCallback = (param: {event: MouseEvent, actionHtml: HT
 
 let openDialogs: RenderedDialog[] = [];
 const reminderContentClass = `${staticValues.moduleName}-reminder-content`;
-async function setPopupContent(sceneId: string, tokenId: string): Promise<void> {
-  const templateData = getTemplateData(sceneId, tokenId);
+async function setPopupContent(actorId: string): Promise<void> {
+  const templateData = getTemplateData(actorId);
   const content: string = await renderTemplate(`modules/${staticValues.moduleName}/templates/reminder.hbs`, templateData) as any;
 
   const popups = document.querySelectorAll(`.${reminderContentClass} .dialog-content`);
@@ -99,23 +99,14 @@ function addEventListeners(content: HTMLElement, templateData: TemplateData): vo
   }
 }
 
-function getTemplateData(sceneId: string, tokenId: string): TemplateData {
-  const token = game.scenes.get(sceneId).getEmbeddedEntity('Token', tokenId);
-  let actorData: Omit<Actor.Data, 'items'> & {items: Item.Data<any>[]};
-  if (game.actors.has(token.actorId)) {
-    actorData = mergeObject(
-      game.actors.get(token.actorId).data,
-      token.actorData
-    );
-  } else {
-    actorData = token.actorData;
-  }
-  const actorData5e: any = actorData.data;
+function getTemplateData(actorId: string): TemplateData {
+  const actor = game.actors.get(actorId);
+  const actorData5e: any = actor.data.data;
   const templateData: TemplateData = {
     reminders: []
   };
 
-  if (actorData.type === 'character') {
+  if (actor.data.type === 'character') {
     templateData.reminders = [
       {label: 'Knowledge check', actions: []},
       {label: 'Movement', actions: []},
@@ -150,8 +141,8 @@ function getTemplateData(sceneId: string, tokenId: string): TemplateData {
   };
   
   let actionId = 0;
-  for (const item of actorData.items.values()) {
-    const data5e: any = item.data;
+  for (const item of actor.items.values()) {
+    const data5e: any = item.data.data;
     if (item.data.type === 'spell') {
       if (data5e?.preparation?.mode === 'prepared' && data5e?.preparation?.prepared !== true) {
         continue;
@@ -235,8 +226,7 @@ function shouldShowReminder(combat: Combat): boolean {
 Hooks.on("ready", () => {
   if (game.combat) {
     if (shouldShowReminder(game.combat)) {
-      const token = (game.combat.turns[game.combat.turn] as any).token;
-      setPopupContent(game.combat.scene.id, token._id);
+      setPopupContent((game.combat.turns[game.combat.turn] as any).token.actorId);
     }
   }
 
@@ -246,8 +236,7 @@ Hooks.on("ready", () => {
 Hooks.on("updateCombat", (combat: Combat, update: Combat, options: any) => {
   if (update.round !== undefined || update.turn !== undefined) {
     if (shouldShowReminder(combat)) {
-      const token = (combat.turns[combat.turn] as any).token;
-      setPopupContent(combat.scene.id, token._id);
+      setPopupContent((combat.turns[combat.turn] as any).token.actorId);
     } else {
       for (const dialog of openDialogs) {
         dialog.dialog.minimize();
