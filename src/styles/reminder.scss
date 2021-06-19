@@ -1,0 +1,38 @@
+.reminder label {
+  cursor: pointer;
+}
+
+.reminder-group {
+  cursor: pointer;
+}
+
+.reminder-group.done .reminder-action {
+  display: none;
+}
+
+.reminder-group-checkbox {
+  width: 32px;
+  vertical-align: top;
+}
+
+.reminder-group-label {
+  display: block;
+  height: 32px;
+  line-height: 32px;
+}
+
+.reminder-action {
+  display: flex;
+  height: 30px;
+  line-height: 30px;
+}
+
+.reminder-action-image {
+  width: 30px;
+  height: 30px; 
+  background-size: 30px;
+}
+
+.reminder-action-image:hover {
+  background-image: url("/icons/svg/d20-black.svg") !important;
+}

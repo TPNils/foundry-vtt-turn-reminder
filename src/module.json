@@ -13,7 +13,9 @@
     "scripts/main.js"
   ],
 	"socket": false,
-	"styles": [],
+	"styles": [
+    "styles/reminder.css"
+  ],
   "languages": [
     {
       "lang": "en",

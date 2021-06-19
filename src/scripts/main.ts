@@ -7,19 +7,75 @@ interface Turn {
   tokenId: string
 }
 
+interface TemplateData {
+  reminders: TemplateReminderData[]
+}
+
+interface TemplateReminderData {
+  label: string;
+  actions: TemplateReminderActionData[];
+}
+
+interface TemplateReminderActionData {
+  id: string;
+  image: string;
+  name: string;
+  description: string;
+  onClick: () => void;
+}
+
 let openDialogs: Dialog[] = [];
 const reminderContentClass = `${staticValues.moduleName}-reminder-content`;
-function setPopupContent(): void {
-  const templateData = {
+function setPopupContent(actorId: string): void {
+  const templateData: TemplateData = {
     reminders: [
-      'Knowledge check',
-      'Movement',
-      'Communicate',
-      '1 Object interaction',
-      '1 Action',
-      '1 Bonus Action',
+      {label: 'Knowledge check', actions: []},
+      {label: 'Movement', actions: []},
+      {label: 'Communicate', actions: []},
+      {label: 'Object interaction', actions: []},
     ]
   };
+
+  const mainActions: TemplateReminderData = {
+    label: 'Action',
+    actions: []
+  };
+  const bonusActions: TemplateReminderData = {
+    label: 'Bonus action',
+    actions: []
+  };
+  templateData.reminders.push(mainActions);
+  templateData.reminders.push(bonusActions);
+  
+  let actionId = 0;
+  for (const item of game.actors.get(actorId).items.values()) {
+    const data5e: any = item.data.data;
+    if (item.data.type === 'spell') {
+      if (data5e?.preparation?.mode === 'prepared' && data5e?.preparation?.prepared !== true) {
+        continue;
+      }
+    }
+    if (data5e.uses && data5e.uses.value < data5e.uses.max) {
+      continue;
+    }
+    const action: TemplateReminderActionData = {
+      id: `reminder-action-${actionId++}`,
+      image: item.img,
+      name: item.name,
+      description: data5e?.description?.value,
+      onClick: () => (item as any).roll()
+    }
+    if (data5e?.activation?.type === 'action') {
+      mainActions.actions.push(action);
+    }
+    if (data5e?.activation?.type === 'bonus') {
+      bonusActions.actions.push(action);
+    }
+  }
+
+  for (const reminder of templateData.reminders) {
+    reminder.actions = reminder.actions.sort((a: TemplateReminderActionData, b: TemplateReminderActionData) => a.name.localeCompare(b.name));
+  }
 
   renderTemplate(`modules/${staticValues.moduleName}/templates/reminder.hbs`, templateData).then((content: any/* string */) => {
     const popups = document.querySelectorAll(`.${reminderContentClass} .dialog-content`);
@@ -28,6 +84,14 @@ function setPopupContent(): void {
         title: 'Turn reminder',
         content: content,
         buttons: {},
+        render: (html) => {
+          const content = html[0];
+          for (const reminder of templateData.reminders) {
+            for (const action of reminder.actions) {
+              content.querySelector(`:scope #${action.id}`).addEventListener('click', () => action.onClick());
+            }
+          }
+        },
         close: () => {
           const remainingDialogs: Dialog[] = [];
           for (const openDialog of openDialogs) {
@@ -37,7 +101,7 @@ function setPopupContent(): void {
           }
           openDialogs = remainingDialogs;
         }
-      }, {
+      } as DialogData & {render: (html: JQuery) => void}, {
         classes: [reminderContentClass]
       });
       dialog.render(true);
@@ -73,7 +137,7 @@ function shouldShowReminder(combat: Combat): boolean {
 Hooks.on("ready", () => {
   if (game.combat) {
     if (shouldShowReminder(game.combat)) {
-      setPopupContent();
+      setPopupContent((game.combat.turns[game.combat.turn] as any).token.actorId);
     }
   }
 
@@ -83,7 +147,7 @@ Hooks.on("ready", () => {
 Hooks.on("updateCombat", (combat: Combat, update: Combat, options: any) => {
   if (update.round !== undefined || update.turn !== undefined) {
     if (shouldShowReminder(combat)) {
-      setPopupContent();
+      setPopupContent((combat.turns[combat.turn] as any).token.actorId);
     } else {
       for (const dialog of openDialogs) {
         dialog.minimize();

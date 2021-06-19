@@ -2,12 +2,21 @@
   <h3>{{localize "turn-reminder.reminder"}}</h3>
 </div>
 
-<div>
-    <ul>
-        {{#each reminders as |reminder key|}}
-        <div class="dice-formula" style="display: block;cursor: pointer;height: 100%;">
-          <label><input type="checkbox"/> {{reminder}}</label>
-        </div>
+<table class="reminder">
+  {{#each reminders as |reminder reminderKey|}}
+    <tr class="reminder-group" style="cursor: pointer;">
+      <td class="reminder-group-checkbox"><input type="checkbox" id="turn-reminder-{{reminderKey}}" onchange="event.target.checked ? event.target.parentElement.parentElement.classList.add('done') : event.target.parentElement.parentElement.classList.remove('done')"/></td>
+      <td colspan="2">
+        <label class="reminder-group-label" for="turn-reminder-{{reminderKey}}">{{reminder.label}}</label>
+
+        {{#each reminder.actions as |action actionKey|}}
+          <div class="reminder-action" id="{{action.id}}">
+            <div class="reminder-action-image" style="background-image: url('{{action.image}}')"></div>
+            {{action.name}}
+          </div>
         {{/each}}
-    </ul>
-</div>
+
+      </td>
+    </tr>
+  {{/each}}
+</table>
