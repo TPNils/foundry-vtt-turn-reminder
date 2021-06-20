@@ -209,10 +209,8 @@ function getTemplateData(actorId: string): TemplateData {
 
 function shouldShowReminder(combat: Combat): boolean {
   const turn: Turn = combat.turns[combat.turn];
-  if (game.user.isGM) {
-    if (turn.actor.data.type === 'npc') {
-      return true;
-    }
+  if (turn.players.length === 0 && game.user.isGM) {
+    return true;
   }
   for (const player of turn.players) {
     if (player.id === game.userId) {
