@@ -53,27 +53,29 @@ class AdditionalRemindersForm extends FormApplication {
 
 class Settings {
 
-  public init(): void {
-    game.settings.register(staticValues.moduleName, 'additionalPlayerReminders', {
-      name: 'Additional player reminders',
-      label: 'Additional player reminders',
-      hint: 'Show these additional reminders in the combat reminder popup for player characters',
-      scope: 'world',     // "world" = sync to db, "client" = local storage
-      config: false,       // false if you dont want it to show in module config
-      type: Object,
-      default: [],
-      onChange: value => {
-        // TODO
-      }
-    })
-  
-    game.settings.registerMenu(staticValues.moduleName, 'additionalPlayerReminders', {
-      name: 'Additional player reminders',
-      label: 'Additional player reminders',
-      hint: 'Show these additional reminders in the combat reminder popup for player characters',
-      scope: 'world',     // "world" = sync to db, "client" = local storage
-      config: true,       // false if you dont want it to show in module config
-      type: AdditionalRemindersForm
+  public registerHooks(): void {
+    Hooks.on('init', () => {
+      game.settings.register(staticValues.moduleName, 'additionalPlayerReminders', {
+        name: 'Additional player reminders',
+        label: 'Additional player reminders',
+        hint: 'Show these additional reminders in the combat reminder popup for player characters',
+        scope: 'world',     // "world" = sync to db, "client" = local storage
+        config: false,       // false if you dont want it to show in module config
+        type: Object,
+        default: [],
+        onChange: value => {
+          // TODO
+        }
+      })
+    
+      game.settings.registerMenu(staticValues.moduleName, 'additionalPlayerReminders', {
+        name: 'Additional player reminders',
+        label: 'Additional player reminders',
+        hint: 'Show these additional reminders in the combat reminder popup for player characters',
+        scope: 'world',     // "world" = sync to db, "client" = local storage
+        config: true,       // false if you dont want it to show in module config
+        type: AdditionalRemindersForm
+      })
     })
   }
 
