@@ -14,7 +14,7 @@
   cursor: pointer;
 }
 
-.reminder-group.done .reminder-action {
+.reminder-group.done .reminder-actions {
   display: none;
 }
 
@@ -30,6 +30,7 @@
   height: 32px;
   line-height: 32px;
 }
+
 .reminder-subgroup-label {
   display: block;
   font-weight: bold;

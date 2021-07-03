@@ -9,18 +9,20 @@
       <td colspan="2">
         <label class="reminder-group-label" for="turn-reminder-{{reminderKey}}">{{reminder.label}}</label>
 
-        {{#each reminder.rootActions as |action|}}
-          {{> modules/turn-reminder/templates/reminder-action.hbs action=action}}
-        {{/each}}
-        
-    
-        {{#each reminder.groupedActions as |group|}}
-          <div class="reminder-subgroup-label">{{group.label}}</div>
-
-          {{#each group.rootActions as |action|}}
+        <div class="reminder-actions">
+          {{#each reminder.rootActions as |action|}}
             {{> modules/turn-reminder/templates/reminder-action.hbs action=action}}
           {{/each}}
-        {{/each}}
+          
+      
+          {{#each reminder.groupedActions as |group|}}
+            <div class="reminder-subgroup-label">{{group.label}}</div>
+
+            {{#each group.rootActions as |action|}}
+              {{> modules/turn-reminder/templates/reminder-action.hbs action=action}}
+            {{/each}}
+          {{/each}}
+        </div>
       </td>
     </tr>
   {{/each}}
