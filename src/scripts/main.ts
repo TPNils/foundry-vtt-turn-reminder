@@ -303,28 +303,101 @@ function getRemainingUses(actor: Actor, item: Item<any>): {remaining?: number, m
   const itemData5e = item.data.data as any;
   const response = {
     hasIndividualUsage: false,
-    hasRemaining: true,
-    max: [],
-    remaining: [],
+    hasRemaining: [] as boolean[],
+    max: [] as number[],
+    remaining: [] as number[],
   };
   if (item.data.type === 'spell') {
-    if (itemData5e.preparation.mode === 'pact') {
+    if (['pact', 'prepared', 'always'].includes(itemData5e.preparation.mode)) {
+      let hasRemainingSpellUses = false;
+      // You can cast pact/(always)prepared spells with the other slots
       const pact = actorData5e.spells.pact;
-      response.remaining.push(pact.value);
-      response.max.push(pact.max);
-    } else if (itemData5e.preparation.mode === 'prepared') {
-      const spellUsage = actorData5e.spells[`spell${itemData5e.level}`];
-      response.remaining.push(spellUsage.value);
-      response.max.push(spellUsage.max);
+      if (pact.value > 0 && pact.level >= itemData5e.level) {
+        hasRemainingSpellUses = true;
+      }
+
+      if (!hasRemainingSpellUses) {
+        let level = itemData5e.level;
+        while (actorData5e.spells.hasOwnProperty(`spell${level}`)) {
+          const spellUsage = actorData5e.spells[`spell${level}`];
+          if (spellUsage.value > 0) {
+            hasRemainingSpellUses = true;
+            break;
+          }
+          level++;
+        }
+      }
+
+      response.hasRemaining.push(hasRemainingSpellUses);
     }
   }
 
   if (itemData5e.uses) {
     // Foundry, for some reason, like to set uses to 0/0 by default
-    if (itemData5e.uses.value !== 0 && itemData5e.uses.max !== 0) {
+    if (typeof itemData5e.uses.value === 'number' && itemData5e.uses.value !== 0 && typeof itemData5e.uses.max === 'number' && itemData5e.uses.max !== 0) {
       response.hasIndividualUsage = true;
       response.remaining.push(itemData5e.uses.value);
       response.max.push(itemData5e.uses.max);
+      response.hasRemaining.push(itemData5e.uses.value > 0);
+    }
+  }
+  
+  if (itemData5e.consume?.amount > 0) {
+    switch (itemData5e.consume.type) {
+      case 'attribute': {
+        if (itemData5e.consume.target) {
+          response.hasIndividualUsage = true;
+          let parentTarget = actorData5e;
+          let targetData = actorData5e;
+          for (const path of itemData5e.consume.target.split('.')) {
+            if (!targetData.hasOwnProperty(path)) {
+              targetData = null;
+              break;
+            }
+            parentTarget = targetData;
+            targetData = targetData[path];
+          }
+
+          if (targetData) {
+            response.remaining.push(targetData);
+            response.hasRemaining.push(targetData >= itemData5e.consume.amount);
+            if (parentTarget.max != null) {
+              response.max.push(parentTarget.max);
+            }
+          }
+        }
+        break;
+      }
+      case 'ammo':
+      case 'material': {
+        if (actor.items.has(itemData5e.consume.target)) {
+          response.hasIndividualUsage = true;
+          const target = actor.items.get(itemData5e.consume.target);
+          const targetItemData5e = target.data.data as any;
+          
+          response.remaining.push(targetItemData5e.quantity);
+          response.hasRemaining.push(targetItemData5e.quantity >= itemData5e.consume.amount);
+          response.max.push(targetItemData5e.quantity);
+        }
+        break;
+      }
+      case 'charges': {
+        if (actor.items.has(itemData5e.consume.target)) {
+          response.hasIndividualUsage = true;
+          const target = actor.items.get(itemData5e.consume.target);
+          const targetItemData5e = target.data.data as any;
+          
+          // Foundry, for some reason, like to set uses to 0/0 by default
+          if (typeof targetItemData5e.uses.value === 'number' && targetItemData5e.uses.value !== 0 && typeof targetItemData5e.uses.max === 'number' && targetItemData5e.uses.max !== 0) {
+            response.hasIndividualUsage = true;
+            response.remaining.push(targetItemData5e.uses.value);
+            response.max.push(targetItemData5e.uses.max);
+            response.hasRemaining.push(targetItemData5e.uses.value > 0);
+          }
+        }
+        break;
+      }
+        
     }
   }
 
@@ -339,7 +412,7 @@ function getRemainingUses(actor: Actor, item: Item<any>): {remaining?: number, m
   return {
     // TODO fix: spells have remaining usages if they can upcast
     hasIndividualUsage: response.hasIndividualUsage,
-    hasRemaining: remaining == null || remaining > 0,
+    hasRemaining: !response.hasRemaining.includes(false),
     max: max,
     remaining: remaining
   };
