@@ -26,6 +26,7 @@ interface TemplateReminderActionData {
   id: string;
   image: string;
   name: string;
+  limit?: string;
   disabled: boolean;
   description?: string;
   onImageClick?: TemplateReminderActionCallback;
@@ -179,11 +180,11 @@ function getTemplateData(actorId: string): TemplateData {
       }
     }
     
-    if (itemUses.hasIndividualUsage && itemUses.remaining != null) {
-      action.name += ` ${itemUses.remaining}/${itemUses.max}`
-    }
     if (itemData5e.quantity !== 1 && itemData5e.quantity != null) {
       action.name += ` (x${itemData5e.quantity})`
+    }
+    if (itemUses.hasIndividualUsage && itemUses.remaining != null) {
+      action.limit = `${itemUses.remaining}/${itemUses.max}`
     }
 
     if (itemData5e?.description?.value) {
@@ -417,6 +418,15 @@ function getRemainingUses(actor: Actor, item: Item<any>): {remaining?: number, m
     remaining: remaining
   };
 }
+
+Hooks.on("init", () => {
+  // register templates parts
+  const templatePaths = [
+    `modules/${staticValues.moduleName}/templates/reminder-action.hbs`
+  ];
+  console.log(templatePaths)
+  loadTemplates(templatePaths);
+});
 
 Hooks.on("ready", () => {
   if (game.combat) {

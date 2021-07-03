@@ -1,0 +1,16 @@
+<div class="reminder-action" id="{{action.id}}" {{#if action.disabled}}disabled{{/if}}>
+  <div class="reminder-action-summary">
+    <div class="reminder-action-image" style="background-image: url('{{action.image}}')"></div>
+    <div class="reminder-action-name">{{action.name}}</div>
+    {{#if action.limit}}
+      <div class="reminder-action-limit">
+        {{{action.limit}}}
+      </div>
+    {{/if}}
+  </div>
+  {{#if action.description}}
+    <div class="reminder-action-description">
+      {{{action.description}}}
+    </div>
+  {{/if}}
+</div>

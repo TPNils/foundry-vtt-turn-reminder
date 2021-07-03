@@ -48,6 +48,10 @@
   width: 100%;
 }
 
+.reminder-action:hover {
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
 .reminder-action .reminder-action-description {
   display: none;
 }
@@ -64,6 +68,13 @@
 }
 
 .reminder-action-name {
+  height: 30px;
+  line-height: 30px;
+  display: inline-block;
+  flex-grow: 1;
+}
+
+.reminder-action-limit {
   height: 30px;
   line-height: 30px;
   display: inline-block;
