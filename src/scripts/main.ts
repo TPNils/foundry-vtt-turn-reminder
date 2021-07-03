@@ -13,13 +13,20 @@ interface TemplateData {
 
 interface TemplateReminderData {
   label: string;
-  actions: TemplateReminderActionData[];
+  rootActions: TemplateReminderActionData[];
+  groupedActions?: TemplateReminderSubData[];
+}
+
+interface TemplateReminderSubData {
+  label: string;
+  rootActions: TemplateReminderActionData[];
 }
 
 interface TemplateReminderActionData {
   id: string;
   image: string;
   name: string;
+  disabled: boolean;
   description?: string;
   onImageClick?: TemplateReminderActionCallback;
   onNameClick?: TemplateReminderActionCallback;
@@ -77,24 +84,36 @@ async function setPopupContent(actorId: string): Promise<void> {
 }
 
 function addEventListeners(content: HTMLElement, templateData: TemplateData): void {
+  const actions: TemplateReminderActionData[] = [];
   for (const reminder of templateData.reminders) {
-    for (const action of reminder.actions) {
-      if (action.onImageClick != null) {
-        content.querySelector(`:scope #${action.id} .reminder-action-image`).addEventListener('click', (event: MouseEvent) => {
-          action.onImageClick({
-            event: event,
-            actionHtml: content.querySelector(`:scope #${action.id}`)
-          })
-        });
+    for (const action of reminder.rootActions) {
+      actions.push(action);
+    }
+    if (reminder.groupedActions) {
+      for (const group of reminder.groupedActions) {
+        for (const action of group.rootActions) {
+          actions.push(action);
+        }
       }
-      if (action.onNameClick != null) {
-        content.querySelector(`:scope #${action.id} .reminder-action-name`).addEventListener('click', (event: MouseEvent) => {
-          action.onNameClick({
-            event: event,
-            actionHtml: content.querySelector(`:scope #${action.id}`)
-          })
-        });
-      }
+    }
+  }
+
+  for (const action of actions) {
+    if (action.onImageClick != null) {
+      content.querySelector(`:scope #${action.id} .reminder-action-image`).addEventListener('click', (event: MouseEvent) => {
+        action.onImageClick({
+          event: event,
+          actionHtml: content.querySelector(`:scope #${action.id}`)
+        })
+      });
+    }
+    if (action.onNameClick != null) {
+      content.querySelector(`:scope #${action.id} .reminder-action-name`).addEventListener('click', (event: MouseEvent) => {
+        action.onNameClick({
+          event: event,
+          actionHtml: content.querySelector(`:scope #${action.id}`)
+        })
+      });
     }
   }
 }
@@ -108,101 +127,159 @@ function getTemplateData(actorId: string): TemplateData {
 
   if (actor.data.type === 'character') {
     templateData.reminders = [
-      {label: 'Knowledge check', actions: []},
-      {label: 'Movement', actions: []},
-      {label: 'Communicate', actions: []},
-      {label: 'Object interaction', actions: []},
+      {label: 'Knowledge check', rootActions: []},
+      {label: 'Movement', rootActions: []},
+      {label: 'Communicate', rootActions: []},
+      {label: 'Object interaction', rootActions: []},
     ]
   }
 
   const mainActions: TemplateReminderData = {
     label: 'Action',
-    actions: []
+    rootActions: []
   };
   const bonusActions: TemplateReminderData = {
     label: 'Bonus action',
-    actions: []
+    rootActions: []
   };
   const reactionActions: TemplateReminderData = {
     label: 'Reaction',
-    actions: []
+    rootActions: []
   };
   const specialActions: TemplateReminderData = {
     label: 'Special',
-    actions: []
+    rootActions: []
   };
   const legendaryActions: TemplateReminderData = {
     label: `Legendary ${actorData5e?.resources?.legact?.value} / ${actorData5e?.resources?.legact?.max}`,
-    actions: []
+    rootActions: []
   };
   const lairActions: TemplateReminderData = {
     label: 'Lair',
-    actions: []
+    rootActions: []
   };
   
   let actionId = 0;
   for (const item of actor.items.values()) {
-    const data5e: any = item.data.data;
+    const itemData5e = item.data.data as any;
     if (item.data.type === 'spell') {
-      if (data5e?.preparation?.mode === 'prepared' && data5e?.preparation?.prepared !== true) {
+      if (itemData5e?.preparation?.mode === 'prepared' && itemData5e?.preparation?.prepared !== true) {
         continue;
       }
     }
-    if (data5e.uses && data5e.uses.value < data5e.uses.max) {
-      continue;
-    }
+    const itemUses = getRemainingUses(actor, item);
     const action: TemplateReminderActionData = {
       id: `reminder-action-${actionId++}`,
       image: item.img,
       name: item.name,
+      disabled: !itemUses.hasRemaining,
       onImageClick: () => (item as any).roll(),
       onNameClick: ({actionHtml}) => {
         actionHtml.classList.toggle('open');
       }
     }
-
-    if (data5e?.description?.value) {
-      action.description = TextEditor.enrichHTML(data5e?.description?.value, {secrets: true, rollData: false});
+    
+    if (itemUses.hasIndividualUsage && itemUses.remaining != null) {
+      action.name += ` ${itemUses.remaining}/${itemUses.max}`
     }
-    switch (data5e?.activation?.type) {
+    if (itemData5e.quantity !== 1 && itemData5e.quantity != null) {
+      action.name += ` (x${itemData5e.quantity})`
+    }
+
+    if (itemData5e?.description?.value) {
+      action.description = TextEditor.enrichHTML(itemData5e?.description?.value, {secrets: true, rollData: false});
+    }
+
+    let actions: TemplateReminderData;
+    switch (itemData5e?.activation?.type) {
       case 'action':
-        mainActions.actions.push(action);
+        actions = mainActions;
         break;
       case 'bonus':
-        bonusActions.actions.push(action);
+        actions = bonusActions;
         break;
       case 'reaction':
-        reactionActions.actions.push(action);
+        actions = reactionActions;
         break;
       case 'none':
       case 'special':
-        specialActions.actions.push(action);
+        actions = specialActions;
         break;
       case 'lair':
-        lairActions.actions.push(action);
+        actions = lairActions;
         break;
       case 'legendary':
-        legendaryActions.actions.push(action);
+        actions = legendaryActions;
         break;
+    }
+
+    if (actions) {
+      let addedToSubGroup = false;
+      if (item.data.type === 'spell') {
+        let name;
+        if (itemData5e.preparation.mode === 'pact') {
+          const pact = actorData5e.spells.pact;
+          name = game.i18n.localize('DND5E.SpellLevelPact')
+            .replace('{level}', game.i18n.localize(`DND5E.SpellLevel${pact.level}`))
+            .replace('{n}', `${pact.value}/${pact.max}`);
+        } else if (itemData5e.preparation.mode === 'prepared') {
+          const spellUsage = actorData5e.spells[`spell${itemData5e.level}`];
+          name = game.i18n.localize('DND5E.SpellLevelSlot')
+            .replace('{level}', game.i18n.localize(`DND5E.SpellLevel${itemData5e.level}`))
+            .replace('{n}', `${spellUsage.value}/${spellUsage.max}`);
+        }
+
+        if (name) {
+          let targetGroup: TemplateReminderSubData;
+          if (!actions.groupedActions) {
+            actions.groupedActions = [];
+          }
+          for (const group of actions.groupedActions) {
+            if (group.label === name) {
+              targetGroup = group;
+              break;
+            } 
+          }
+          if (!targetGroup) {
+            targetGroup = {
+              label: name,
+              rootActions: []
+            };
+            actions.groupedActions.push(targetGroup);
+          }
+          targetGroup.rootActions.push(action);
+          addedToSubGroup = true;
+        }
+      } 
+      
+      if (!addedToSubGroup){
+        actions.rootActions.push(action);
+      }
     }
   }
   templateData.reminders.push(mainActions);
   templateData.reminders.push(bonusActions);
-  if (specialActions.actions.length > 0) {
+  if (specialActions.rootActions.length > 0) {
     templateData.reminders.push(specialActions);
   }
-  if (reactionActions.actions.length > 0) {
+  if (reactionActions.rootActions.length > 0) {
     templateData.reminders.push(reactionActions);
   }
-  if (legendaryActions.actions.length > 0 && actorData5e?.resources?.legact?.max > 0) {
+  if (legendaryActions.rootActions.length > 0 && actorData5e?.resources?.legact?.max > 0) {
     templateData.reminders.push(legendaryActions);
   }
-  if (lairActions.actions.length > 0 && actorData5e?.resources?.lair?.value === true) {
+  if (lairActions.rootActions.length > 0 && actorData5e?.resources?.lair?.value === true) {
     templateData.reminders.push(lairActions);
   }
 
   for (const reminder of templateData.reminders) {
-    reminder.actions = reminder.actions.sort((a: TemplateReminderActionData, b: TemplateReminderActionData) => a.name.localeCompare(b.name));
+    reminder.rootActions = reminder.rootActions.sort((a: TemplateReminderActionData, b: TemplateReminderActionData) => a.name.localeCompare(b.name));
+    if (reminder.groupedActions) {
+      reminder.groupedActions = reminder.groupedActions.sort((a: TemplateReminderSubData, b: TemplateReminderSubData) => a.label.localeCompare(b.label));
+      for (const group of reminder.groupedActions) {
+        group.rootActions = group.rootActions.sort((a: TemplateReminderActionData, b: TemplateReminderActionData) => a.name.localeCompare(b.name));
+      }
+    }
   }
   return templateData;
 }
@@ -219,6 +296,53 @@ function shouldShowReminder(combat: Combat): boolean {
   }
 
   return false;
+}
+
+function getRemainingUses(actor: Actor, item: Item<any>): {remaining?: number, max?: number, hasRemaining: boolean, hasIndividualUsage: boolean} {
+  const actorData5e = actor.data.data as any;
+  const itemData5e = item.data.data as any;
+  const response = {
+    hasIndividualUsage: false,
+    hasRemaining: true,
+    max: [],
+    remaining: [],
+  };
+  if (item.data.type === 'spell') {
+    if (itemData5e.preparation.mode === 'pact') {
+      const pact = actorData5e.spells.pact;
+      response.remaining.push(pact.value);
+      response.max.push(pact.max);
+    } else if (itemData5e.preparation.mode === 'prepared') {
+      const spellUsage = actorData5e.spells[`spell${itemData5e.level}`];
+      response.remaining.push(spellUsage.value);
+      response.max.push(spellUsage.max);
+    }
+  }
+
+  if (itemData5e.uses) {
+    // Foundry, for some reason, like to set uses to 0/0 by default
+    if (itemData5e.uses.value !== 0 && itemData5e.uses.max !== 0) {
+      response.hasIndividualUsage = true;
+      response.remaining.push(itemData5e.uses.value);
+      response.max.push(itemData5e.uses.max);
+    }
+  }
+
+  let remaining = Math.min(...response.remaining.filter(a => typeof a === 'number'));
+  let max = Math.min(...response.max.filter(a => typeof a === 'number'));
+  if (remaining === Infinity) {
+    remaining = null;
+  }
+  if (max === Infinity) {
+    max = null;
+  }
+  return {
+    // TODO fix: spells have remaining usages if they can upcast
+    hasIndividualUsage: response.hasIndividualUsage,
+    hasRemaining: remaining == null || remaining > 0,
+    max: max,
+    remaining: remaining
+  };
 }
 
 Hooks.on("ready", () => {

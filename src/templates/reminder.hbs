@@ -9,8 +9,8 @@
       <td colspan="2">
         <label class="reminder-group-label" for="turn-reminder-{{reminderKey}}">{{reminder.label}}</label>
 
-        {{#each reminder.actions as |action actionKey|}}
-          <div class="reminder-action" id="{{action.id}}">
+        {{#each reminder.rootActions as |action|}}
+          <div class="reminder-action" id="{{action.id}}" {{#if action.disabled}}disabled{{/if}}>
             <div class="reminder-action-summary">
               <div class="reminder-action-image" style="background-image: url('{{action.image}}')"></div>
               <div class="reminder-action-name">{{action.name}}</div>
@@ -22,7 +22,25 @@
             {{/if}}
           </div>
         {{/each}}
+        
+    
+        {{#each reminder.groupedActions as |group|}}
+          <div class="reminder-subgroup-label">{{group.label}}</div>
 
+          {{#each group.rootActions as |action|}}
+            <div class="reminder-action" id="{{action.id}}" {{#if action.disabled}}disabled{{/if}}>
+              <div class="reminder-action-summary">
+                <div class="reminder-action-image" style="background-image: url('{{action.image}}')"></div>
+                <div class="reminder-action-name">{{action.name}}</div>
+              </div>
+              {{#if action.description}}
+                <div class="reminder-action-description">
+                  {{{action.description}}}
+                </div>
+              {{/if}}
+            </div>
+          {{/each}}
+        {{/each}}
       </td>
     </tr>
   {{/each}}
