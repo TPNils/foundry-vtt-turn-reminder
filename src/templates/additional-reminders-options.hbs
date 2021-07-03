@@ -1,0 +1,13 @@
+<form class="flexcol" autocomplete="off">
+  <table>
+    {{#each reminders as |reminder|}}
+      {{> modules/turn-reminder/templates/additional-reminders-option.hbs value=reminder}}
+    {{/each}}
+    <tr>
+      <td colspan="2"><button id="add-reminder" type="button">+ Add</button></td>
+    </tr>
+    <tr>
+      <td colspan="2"><button type="submit">Save</button></td>
+    </tr>
+  </table>
+</form>

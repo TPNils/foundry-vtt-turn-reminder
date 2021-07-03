@@ -1,3 +1,4 @@
+import { settings } from "./settings.js";
 import { staticValues } from "./static-values.js";
 
 interface Turn {
@@ -127,12 +128,12 @@ function getTemplateData(actorId: string): TemplateData {
   };
 
   if (actor.data.type === 'character') {
-    templateData.reminders = [
-      {label: 'Knowledge check', rootActions: []},
-      {label: 'Movement', rootActions: []},
-      {label: 'Communicate', rootActions: []},
-      {label: 'Object interaction', rootActions: []},
-    ]
+    templateData.reminders = settings.getAdditionalReminder().map(reminder => {
+      return {
+        label: reminder,
+        rootActions: []
+      }
+    })
   }
 
   const mainActions: TemplateReminderData = {
@@ -428,9 +429,12 @@ function getRemainingUses(actor: Actor, item: Item<any>): {remaining?: number, m
 Hooks.on("init", () => {
   // register templates parts
   const templatePaths = [
-    `modules/${staticValues.moduleName}/templates/reminder-action.hbs`
+    `modules/${staticValues.moduleName}/templates/reminder-action.hbs`,
+    `modules/${staticValues.moduleName}/templates/additional-reminders-option.hbs`
   ];
   loadTemplates(templatePaths);
+
+  settings.init();
 });
 
 Hooks.on("ready", () => {
@@ -439,7 +443,8 @@ Hooks.on("ready", () => {
       setPopupContent((game.combat.turns[game.combat.turn] as any).token.actorId);
     }
   }
-
+  // TODO remove testing code
+  game.settings.sheet.render(true);
   return true;
 });
 
