@@ -10,10 +10,6 @@
   cursor: pointer;
 }
 
-.reminder-group {
-  cursor: pointer;
-}
-
 .reminder-group.done .reminder-actions {
   display: none;
 }
@@ -45,6 +41,7 @@
 }
 
 .reminder-action-summary {
+  cursor: pointer;
   display: flex;
   width: 100%;
 }

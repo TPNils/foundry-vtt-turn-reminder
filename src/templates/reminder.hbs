@@ -4,7 +4,7 @@
 
 <table class="reminder">
   {{#each reminders as |reminder reminderKey|}}
-    <tr class="reminder-group" style="cursor: pointer;">
+    <tr class="reminder-group">
       <td class="reminder-group-checkbox"><input type="checkbox" id="turn-reminder-{{reminderKey}}" onchange="event.target.checked ? event.target.parentElement.parentElement.classList.add('done') : event.target.parentElement.parentElement.classList.remove('done')"/></td>
       <td colspan="2">
         <label class="reminder-group-label" for="turn-reminder-{{reminderKey}}">{{reminder.label}}</label>
