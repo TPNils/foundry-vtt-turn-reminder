@@ -174,7 +174,13 @@ function getTemplateData(actorId: string): TemplateData {
       image: item.img,
       name: item.name,
       disabled: !itemUses.hasRemaining,
-      onImageClick: () => (item as any).roll(),
+      onImageClick: () => {
+        if (typeof (item as any).hasMacro === 'function' && (item as any).hasMacro()) {
+          (item as any).executeMacro();
+        } else {
+          (item as any).roll()
+        }
+      },
       onNameClick: ({actionHtml}) => {
         actionHtml.classList.toggle('open');
       }
@@ -424,7 +430,6 @@ Hooks.on("init", () => {
   const templatePaths = [
     `modules/${staticValues.moduleName}/templates/reminder-action.hbs`
   ];
-  console.log(templatePaths)
   loadTemplates(templatePaths);
 });
 
