@@ -2,6 +2,7 @@
  * Based on https://gitlab.com/tposney/midi-qol/-/blob/master/gulpfile.js
  */
 
+const glob = require('glob');
 const gulp = require('gulp');
 const fs = require('fs-extra');
 const path = require('path');
@@ -168,22 +169,33 @@ function buildSASS() {
 /**
  * Copy static files
  */
+const staticFiles = [
+	'lang',
+	'packs',
+	'fonts',
+	'assets',
+	'templates',
+	'module.json',
+	'system.json',
+	'template.json',
+].map(file => path.join('src', file));
+
+const staticGlobs = [
+	'**/*.js',
+].map(file => path.join('src', file))
 async function copyFiles() {
-	const statics = [
-		'lang',
-		'packs',
-		'fonts',
-		'assets',
-		'templates',
-		'module.json',
-		'system.json',
-		'template.json',
-	];
 	try {
-		for (const file of statics) {
-			if (fs.existsSync(path.join('src', file))) {
-				await fs.copy(path.join('src', file), path.join('dist', file));
+		for (const file of staticFiles) {
+			if (fs.existsSync(file)) {
+				await fs.copy(file, file.replace(/^src/, 'dist'));
 			}
+		}
+		for (const staticGlob of staticGlobs) {
+			glob(staticGlob, {}, async (er, files) => {
+				for (const file of files) {
+					await fs.copy(file, file.replace(/^src/, 'dist'));
+				}
+			})
 		}
 		return Promise.resolve();
 	} catch (err) {
@@ -198,8 +210,9 @@ function buildWatch() {
 	gulp.watch('src/**/*.ts', { ignoreInitial: false }, buildTS);
 	gulp.watch('src/**/*.less', { ignoreInitial: false }, buildLess);
 	gulp.watch('src/**/*.scss', { ignoreInitial: false }, buildSASS);
+	console.log([...staticFiles, ...staticGlobs].map(file => file.split(path.sep).join('/')))
 	gulp.watch(
-		['src/fonts', 'src/lang', 'src/templates', 'src/*.json'],
+		[...staticFiles, ...staticGlobs].map(file => file.split(path.sep).join('/')),
 		{ ignoreInitial: false },
 		copyFiles
 	);
