@@ -8,8 +8,18 @@ export class SystemReminderDnd5e implements SystemReminder {
     // do nothing
   }
 
-  public getTemplateData(actorId: string): TemplateReminderData[] {
-    const actor = game.actors.get(actorId);
+  public getTemplateData(sceneId: string, tokenId: string): TemplateReminderData[] {
+    let actor: Actor;
+    if (canvas.scene.id === sceneId) {
+      actor = canvas.tokens.get(tokenId).actor;
+    } else {
+      const tokenData: {actorId: string, actorLink: boolean} = game.scenes.get(sceneId).getEmbeddedEntity('Token', tokenId);
+      if (tokenData.actorLink) {
+        actor = game.actors.get(tokenData.actorId);
+      } else {
+        throw new Error(`Can't fetch token action from another scene. Go to the following scene to fix the issue: ${game.scenes.get(sceneId).name}`);
+      }
+    }
     const actorData5e: any = actor.data.data;
     const reminders: TemplateReminderData[] = [];
   

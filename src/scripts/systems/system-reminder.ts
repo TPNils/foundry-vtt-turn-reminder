@@ -2,5 +2,5 @@ import { TemplateReminderData } from "../reminder-dialog";
 
 export interface SystemReminder {
   registerHooks(): void;
-  getTemplateData(actorId: string): TemplateReminderData[];
+  getTemplateData(sceneId: string, tokenId: string): TemplateReminderData[];
 }

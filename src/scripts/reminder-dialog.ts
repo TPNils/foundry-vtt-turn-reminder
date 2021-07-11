@@ -51,7 +51,8 @@ export class ReminderDialog {
     Hooks.on("ready", () => {
       if (game.combat) {
         if (this.shouldShowReminder(game.combat)) {
-          this.setPopupContent((game.combat.turns[game.combat.turn] as any).token.actorId);
+          const turn = (game.combat.turns[game.combat.turn] as any);
+          this.setPopupContent((game.combat.data as any).scene, turn.tokenId);
         }
       }
       return true;
@@ -60,7 +61,8 @@ export class ReminderDialog {
     Hooks.on("updateCombat", (combat: Combat, update: Combat, options: any) => {
       if (update.round !== undefined || update.turn !== undefined) {
         if (this.shouldShowReminder(combat)) {
-          this.setPopupContent((combat.turns[combat.turn] as any).token.actorId);
+          const turn = (combat.turns[game.combat.turn] as any);
+          this.setPopupContent((combat.data as any).scene, turn.tokenId);
         } else {
           for (const dialog of this.openDialogs) {
             dialog.dialog.minimize();
@@ -80,9 +82,9 @@ export class ReminderDialog {
     });
   }
 
-  private async setPopupContent(actorId: string): Promise<void> {
+  private async setPopupContent(sceneId: string, tokenId: string): Promise<void> {
     let prependReminders: TemplateReminderData[] = [];
-    const actor = game.actors.get(actorId);
+    const actor = game.actors.get(game.scenes.get(sceneId).getEmbeddedEntity('Token', tokenId).actorId);
     if (actor.data.type === 'character') {
       prependReminders = settings.getAdditionalReminder().map(reminder => {
         return {
@@ -94,7 +96,7 @@ export class ReminderDialog {
     const templateData: TemplateData = {
       reminders: [
         ...prependReminders,
-        ...systemReminderProvider.getSystemReminder().getTemplateData(actorId)
+        ...systemReminderProvider.getSystemReminder().getTemplateData(sceneId, tokenId)
       ]
     }
     const content: string = await renderTemplate(`modules/${staticValues.moduleName}/templates/reminder.hbs`, templateData) as any;
