@@ -215,10 +215,10 @@ export class SystemReminderDnd5e implements SystemReminder {
     }
   
     if (itemData5e.uses) {
-      // Foundry, for some reason, like to set uses to 0/0 by default
-      if (typeof itemData5e.uses.value === 'number' && itemData5e.uses.value !== 0 && typeof itemData5e.uses.max === 'number' && itemData5e.uses.max !== 0) {
+      // Foundry/dnd5e, for some reason, like to set uses to 0/0 by default => ignore those usages
+      if (typeof itemData5e.uses.max === 'number' && itemData5e.uses.max !== 0) {
         response.hasIndividualUsage = true;
-        response.remaining.push(itemData5e.uses.value);
+        response.remaining.push(Number(itemData5e.uses.value));
         response.max.push(itemData5e.uses.max);
         response.hasRemaining.push(itemData5e.uses.value > 0);
       }
