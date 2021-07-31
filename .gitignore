@@ -1,22 +1,21 @@
 /*
 !/.gitignore
 !/.github
-!/docs
 !/gulpfile.js
 !/package.json
 !/tsconfig.json
 !/LICENSE.MIT
 !/README.md
+!/lib-find-the-path
 !/.gitmodules
+!/.eslintrc.json
 
 !/src
 /src/*
 # Gulp copies these files
 !/src/module.json
+!/src/assets
 !/src/lang
-!/src/templates
-!/src/styles
-
-# Gulp only processes and copies .ts files
+!/src/packs
 !/src/scripts
-!/src/scripts/**/*.ts
+!/src/templates
