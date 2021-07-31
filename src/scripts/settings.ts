@@ -1,11 +1,9 @@
 import { staticValues } from "./static-values"
 
 class AdditionalRemindersForm extends FormApplication {
-
-  private exampleOption = 'example';
   
   constructor() {
-    super();
+    super({});
   }
 
   public static get defaultOptions() {
@@ -16,7 +14,7 @@ class AdditionalRemindersForm extends FormApplication {
     });
   }
 
-  public getData() {
+  public getData(): any {
     // Send data to the template
     return {
       reminders: settings.getAdditionalReminder(),
@@ -57,7 +55,6 @@ class Settings {
     Hooks.on('init', () => {
       game.settings.register(staticValues.moduleName, 'additionalPlayerReminders', {
         name: 'Additional player reminders',
-        label: 'Additional player reminders',
         hint: 'Show these additional reminders in the combat reminder popup for player characters',
         scope: 'world',     // "world" = sync to db, "client" = local storage
         config: false,       // false if you dont want it to show in module config
@@ -72,8 +69,7 @@ class Settings {
         name: 'Additional player reminders',
         label: 'Additional player reminders',
         hint: 'Show these additional reminders in the combat reminder popup for player characters',
-        scope: 'world',     // "world" = sync to db, "client" = local storage
-        config: true,       // false if you dont want it to show in module config
+        restricted: true,       // false if you dont want it to show in module config
         type: AdditionalRemindersForm
       })
     })
@@ -84,11 +80,11 @@ class Settings {
     if (!value) {
       return []
     }
-    return value;
+    return value as string[];
   }
 
   public setAdditionalReminder(value: string[]): Promise<void> {
-    return game.settings.set(staticValues.moduleName, 'additionalPlayerReminders', value);
+    return game.settings.set(staticValues.moduleName, 'additionalPlayerReminders', value).then();
   }
 
 }

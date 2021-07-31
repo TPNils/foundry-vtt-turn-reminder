@@ -1,6 +1,7 @@
 import { reminderDialog } from "./reminder-dialog.js";
 import { settings } from "./settings.js";
 import { staticValues } from "./static-values.js";
+import { Version } from "./systems/version.js";
 
 reminderDialog.registerHooks();
 settings.registerHooks();

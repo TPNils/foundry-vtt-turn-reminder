@@ -19,6 +19,10 @@ export class Version {
     return new Version(parsed)
   }
 
+  public static isMinGameVersion(version: string): boolean {
+    return Version.fromString(version).lte(Version.fromString(game.data.version))
+  }
+
   constructor(
     private readonly versionParts: number[]
   ) {
@@ -47,12 +51,20 @@ export class Version {
     return this.localCompare(other) > 0;
   }
 
+  public gte(other: Version): boolean {
+    return this.localCompare(other) >= 0;
+  }
+
   public eq(other: Version): boolean {
     return this.localCompare(other) === 0;
   }
 
   public lt(other: Version): boolean {
     return this.localCompare(other) < 0;
+  }
+
+  public lte(other: Version): boolean {
+    return this.localCompare(other) <= 0;
   }
 
   public localCompare(other: Version): 1 | 0 | -1 {

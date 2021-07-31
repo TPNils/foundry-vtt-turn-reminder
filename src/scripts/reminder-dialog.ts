@@ -1,13 +1,7 @@
 import { settings } from "./settings.js";
 import { staticValues } from "./static-values.js";
 import { systemReminderProvider } from "./systems/system-reminder-provider.js";
-
-interface Turn {
-  actor: Actor,
-  players: any[],
-  token: any,
-  tokenId: string
-}
+import { Version } from "./systems/version.js";
 
 interface RenderedDialog {
   dialog: Dialog,
@@ -51,8 +45,15 @@ export class ReminderDialog {
     Hooks.on("ready", () => {
       if (game.combat) {
         if (this.shouldShowReminder(game.combat)) {
-          const turn = (game.combat.turns[game.combat.turn] as any);
-          this.setPopupContent((game.combat.data as any).scene, turn.tokenId);
+          if (Version.isMinGameVersion('0.8.0')) {
+            // 0.8.x
+            const turn = game.combat.turns[game.combat.turn];
+            this.setPopupContent(game.combat.data.scene, turn.data.tokenId);
+          } else {
+            // 0.7.x
+            const turn = (game.combat.turns[game.combat.turn] as any);
+            this.setPopupContent(game.combat.data.scene, turn.tokenId);
+          }
         }
       }
       return true;
@@ -61,8 +62,15 @@ export class ReminderDialog {
     Hooks.on("updateCombat", (combat: Combat, update: Combat, options: any) => {
       if (update.round !== undefined || update.turn !== undefined) {
         if (this.shouldShowReminder(combat)) {
-          const turn = (combat.turns[game.combat.turn] as any);
-          this.setPopupContent((combat.data as any).scene, turn.tokenId);
+          if (Version.isMinGameVersion('0.8.0')) {
+            // 0.8.x
+            const turn = combat.turns[game.combat.turn];
+            this.setPopupContent(combat.data.scene, turn.data.tokenId);
+          } else {
+            // 0.7.x
+            const turn = (combat.turns[game.combat.turn] as any);
+            this.setPopupContent(combat.data.scene, turn.tokenId);
+          }
         } else {
           for (const dialog of this.openDialogs) {
             dialog.dialog.minimize();
@@ -84,7 +92,14 @@ export class ReminderDialog {
 
   private async setPopupContent(sceneId: string, tokenId: string): Promise<void> {
     let prependReminders: TemplateReminderData[] = [];
-    const actor = game.actors.get(game.scenes.get(sceneId).getEmbeddedEntity('Token', tokenId).actorId);
+    let actor: any;
+    if (Version.isMinGameVersion('0.8.0')) {
+      // 0.8.x
+      actor = (game.scenes.get(sceneId).getEmbeddedDocument('Token', tokenId) as TokenDocument).getActor();
+    } else {
+      // 0.7.x
+      actor = game.actors.get((game.scenes.get(sceneId) as any).getEmbeddedEntity('Token', tokenId).actorId);
+    }
     if (actor.data.type === 'character') {
       prependReminders = settings.getAdditionalReminder().map(reminder => {
         return {
@@ -107,7 +122,8 @@ export class ReminderDialog {
         title: 'Turn reminder',
         content: content,
         buttons: {},
-        render: (html) => {
+        default: '',
+        render: (html: JQuery) => {
           this.addEventListeners(html[0], templateData);
         },
         close: () => {
@@ -119,7 +135,7 @@ export class ReminderDialog {
           }
           this.openDialogs = remainingDialogs;
         }
-      } as DialogData & {render: (html: JQuery) => void}, {
+      } as Dialog.Data, {
         classes: [reminderContentClass]
       });
       dialog.render(true);
@@ -175,7 +191,7 @@ export class ReminderDialog {
   }
 
   private shouldShowReminder(combat: Combat): boolean {
-    const turn: Turn = combat.turns[combat.turn];
+    const turn = combat.turns[combat.turn];
     if (turn.players.length === 0 && game.user.isGM) {
       return true;
     }

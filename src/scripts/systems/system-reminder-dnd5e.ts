@@ -1,6 +1,7 @@
-import { TemplateData, TemplateReminderActionData, TemplateReminderData, TemplateReminderSubData } from "../reminder-dialog";
-import { settings } from "../settings";
+import { TemplateReminderActionData, TemplateReminderData, TemplateReminderSubData } from "../reminder-dialog";
+import { TurnReminder } from "../types/fixed-types";
 import { SystemReminder } from "./system-reminder";
+import { Version } from "./version";
 
 export class SystemReminderDnd5e implements SystemReminder {
 
@@ -9,11 +10,17 @@ export class SystemReminderDnd5e implements SystemReminder {
   }
 
   public getTemplateData(sceneId: string, tokenId: string): TemplateReminderData[] {
-    let actor: Actor;
+    let actor: TurnReminder.MyActor;
     if (canvas.scene.id === sceneId) {
       actor = canvas.tokens.get(tokenId).actor;
     } else {
-      const tokenData: {actorId: string, actorLink: boolean} = game.scenes.get(sceneId).getEmbeddedEntity('Token', tokenId);
+      let tokenData: {actorId: string, actorLink: boolean};
+      if (Version.isMinGameVersion('0.8.0')) {
+        tokenData = game.scenes.get(sceneId).getEmbeddedDocument('Token', tokenId).data;
+      } else {
+        // 0.7.x
+        tokenData = (game.scenes.get(sceneId) as any).getEmbeddedEntity('Token', tokenId);
+      }
       if (tokenData.actorLink) {
         actor = game.actors.get(tokenData.actorId);
       } else {
@@ -60,7 +67,7 @@ export class SystemReminderDnd5e implements SystemReminder {
       const action: TemplateReminderActionData = {
         id: `reminder-action-${actionId++}`,
         image: item.img,
-        name: item.name,
+        name: (item as any).name,
         disabled: !itemUses.hasRemaining,
         onImageClick: () => {
           if (typeof (item as any).hasMacro === 'function' && (item as any).hasMacro()) {
@@ -82,7 +89,7 @@ export class SystemReminderDnd5e implements SystemReminder {
       }
   
       if (itemData5e?.description?.value) {
-        action.description = TextEditor.enrichHTML(itemData5e?.description?.value, {secrets: true, rollData: false});
+        action.description = TextEditor.enrichHTML(itemData5e?.description?.value, {secrets: true, rollData: false} as any);
       }
   
       let actions: TemplateReminderData;
@@ -180,7 +187,7 @@ export class SystemReminderDnd5e implements SystemReminder {
   }
   
   
-  private getRemainingUses(actor: Actor, item: Item<any>): {remaining?: number, max?: number, hasRemaining: boolean, hasIndividualUsage: boolean} {
+  private getRemainingUses(actor: TurnReminder.MyActor, item: TurnReminder.MyItem): {remaining?: number, max?: number, hasRemaining: boolean, hasIndividualUsage: boolean} {
     const actorData5e = actor.data.data as any;
     const itemData5e = item.data.data as any;
     const response = {
